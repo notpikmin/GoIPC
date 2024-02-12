@@ -71,27 +71,49 @@ void WriteMemory(char* message) {
 
 */
 import "C"
-import "unsafe"
+import (
+	"log"
+	"unsafe"
+)
+
+var BufSize = 64
 
 func Create(memoryName string, bufSize int) {
+	BufSize = bufSize
 	C.CreateSharedMemory(C.CString(memoryName), C.int(bufSize))
 }
 
 func Open(memoryName string, bufSize int) {
+	BufSize = bufSize
+
 	C.OpenSharedMemory(C.CString(memoryName), C.int(bufSize))
 }
 
 func WriteMemoryString(message string) {
+	size := int(unsafe.Sizeof(message))
+	if size > BufSize {
+		log.Println("Message was bigger than buf size", size, ">", BufSize)
+		return
+	}
 	msg := C.CString(message)
 	C.WriteMemory(msg)
 }
 
 func WriteMemory(message []byte) {
+	size := int(unsafe.Sizeof(message))
+	if size > BufSize {
+		log.Println("Message was bigger than buf size", size, ">", BufSize)
+		return
+	}
 	msg := C.CString(string(message))
 	C.WriteMemory(msg)
 }
 
 func ReadMemory(bufSize int, offset int) []byte {
+	if offset > bufSize {
+		log.Println("Offset was bigger than bufSize", offset, ">", bufSize)
+		return nil
+	}
 	message := C.ReadMemory()
 	buf := C.GoBytes(unsafe.Add(unsafe.Pointer(message), offset), C.int(bufSize))
 	return buf
